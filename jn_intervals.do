@@ -1,8 +1,5 @@
-capture program drop hello
-program define hello
-	set trace on
-    version 17
-	
+capture program drop jn_intervals
+program define jn_intervals
     syntax varlist(min=2 max=2) [if] , ic(integer) [level(integer 95)]
 	
 	local main_indepvar : word 1 of `varlist'
@@ -31,16 +28,20 @@ program define hello
 	forvalues mod_val = `min_mod'(`ic')`max_mod' {
 		margins, dydx(`main_indepvar') at(`moderator'=`mod_val')
 		matrix margins_result = r(table)
+		display `main_indepvar'
+		display `moderator'
+		display `mod_val'
 		
 		local effect = margins_result[1,2]
 		local se = margins_result[2,2]
 		local p_value = margins_result[4,2]
 		
+		di "Moderator Value: `mod_val' | Effect: `effect' | SE: `se' | p-value: `p_value'"
+		
 		local lower_ci = `effect' - 1.96 * `se'
 		local upper_ci = `effect' + 1.96 * `se'
-		// mod_val when p_value less or equal than (100 - level) / 100
 		
-		local is_significant = `p_value' <= (100 - `level') / 100
+		local is_significant = `p_value' < ((100 - `level') / 100)
 		
 		display "Is significant `is_significant'"
 		
@@ -81,6 +82,8 @@ program define hello
 		replace upper_ci = results[`i', 6] in `row_index'
 		replace is_significant = results[`i', 7] in `row_index'
 	}
+	
+	drop if missing(mod_val, effect, se, p_value, lower_ci, upper_ci, is_significant)
 	
 	list mod_val effect se p_value lower_ci upper_ci is_significant
 end
